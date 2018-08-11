@@ -2,28 +2,29 @@ package main
 
 import (
 	"fmt"
-	"github.com/yuchueh/ewframework/config"
-	"runtime"
-	"path"
-	"path/filepath"
-	"strings"
+	"net/http"
 )
 
-func main()  {
-	fmt.Println("this is ewframework")
+type MyStruct struct {
 
-	c, err := config.ReadDefault("config.cfg")
-	if err != nil {
-		fmt.Println(err)
-	} else {
-		s, _ := c.String("DEFAULT", "url")
-		fmt.Println(s)
+}
+
+func (s *MyStruct) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprint(w, "Hello World!")
+}
+
+func main()  {
+	fmt.Println("this is ewframework start")
+
+	handler := MyStruct{}
+	//http.ListenAndServe("", nil)
+	svr := http.Server{
+		Addr:"",
+		//Handler:&handler,
 	}
 
-	_, filename, line, _ := runtime.Caller(0)
-	fmt.Println(filename, line, path.Base(filename), path.Ext(filename), filepath.Ext(filename), strings.Replace(path.Base(filename), filepath.Ext(filename), "", -1))
+	http.Handle("/hello", &handler)
+	svr.ListenAndServe()
 
-
-	//filepath.Ext()
-
+	fmt.Println("this is ewframework end")
 }

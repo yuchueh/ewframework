@@ -45,12 +45,8 @@ func Test_osext(t *testing.T)  {
 		t.Log("GetCurrentPath:", s)
 	}
 
-	s, err = osext.GetWd()
-	if err != nil {
-		t.Fatal("Bad test case GetWd:", err)
-	} else {
-		t.Log("GetWd:", s)
-	}
+	s = osext.GetWd()
+	t.Log("GetWd:", s)
 }
 
 func Benchmark_osext(b *testing.B)  {
@@ -74,4 +70,5 @@ func Benchmark_osext(b *testing.B)  {
 func Benchmark_GetCurrentFileName(b *testing.B)  {
 	b.Log(osext.GetCurrentFileName(true))
 	b.Log(osext.GetCurrentFileName(false))
+
 }

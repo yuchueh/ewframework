@@ -32,7 +32,8 @@ func ExecutableFolder() (string, error) {
 		return "", err
 	}
 
-	return filepath.Dir(p), nil
+	p = filepath.Dir(p) + string(os.PathSeparator)
+	return p, nil
 }
 
 //Check file exits
@@ -126,8 +127,9 @@ func GetCurrentPath() (string, error) {
 }
 
 //获取当前文件的所在目录
-func GetWd() (dir string, err error) {
-	return os.Getwd()
+func GetWd() string {
+	wd, _ := os.Getwd()
+	return wd + string(os.PathSeparator)
 }
 
 //获取当前执行的文件名称
@@ -138,4 +140,12 @@ func GetCurrentFileName(bContainExt bool) string {
 	} else {
 		return strings.Replace(path.Base(filename), filepath.Ext(filename), "", -1)
 	}
+}
+
+// FileExists reports whether the named file or directory exists.
+func FileExists(name string) bool {
+	if _, err := os.Stat(name); err != nil {
+		return !os.IsNotExist(err)
+	}
+	return true
 }
