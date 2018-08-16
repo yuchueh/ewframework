@@ -1,12 +1,12 @@
 package test
 
 import (
-	"testing"
 	"github.com/yuchueh/ewframework/config"
 	"strings"
+	"testing"
 )
 
-func TestConfig(t *testing.T)  {
+func TestConfig(t *testing.T) {
 	c, err := config.ReadDefault("testdata/config.cfg")
 	if err != nil {
 		t.Error(err)

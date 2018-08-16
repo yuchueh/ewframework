@@ -1,11 +1,11 @@
 package test
 
 import (
-	"testing"
 	"github.com/yuchueh/ewframework/utils/osext"
+	"testing"
 )
 
-func Test_osext(t *testing.T)  {
+func Test_osext(t *testing.T) {
 	s, err := osext.Executable()
 	if err != nil {
 		t.Fatal("Bad test case Executable:", err)
@@ -34,7 +34,7 @@ func Test_osext(t *testing.T)  {
 
 	fi := osext.SearchDir(s)
 	t.Log(fi)
-	for i,v := range fi {
+	for i, v := range fi {
 		t.Log(i, v)
 	}
 
@@ -49,7 +49,7 @@ func Test_osext(t *testing.T)  {
 	t.Log("GetWd:", s)
 }
 
-func Benchmark_osext(b *testing.B)  {
+func Benchmark_osext(b *testing.B) {
 	s, err := osext.ExecutableFolder()
 	if err != nil {
 		b.Fatal("Bad test case ExecutableFolder:", err)
@@ -62,12 +62,12 @@ func Benchmark_osext(b *testing.B)  {
 
 	fi := osext.SearchDir(s)
 	b.Log(fi)
-	for i,v := range fi {
+	for i, v := range fi {
 		b.Log(i, v)
 	}
 }
 
-func Benchmark_GetCurrentFileName(b *testing.B)  {
+func Benchmark_GetCurrentFileName(b *testing.B) {
 	b.Log(osext.GetCurrentFileName(true))
 	b.Log(osext.GetCurrentFileName(false))
 

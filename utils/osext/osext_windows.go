@@ -8,15 +8,16 @@ import (
 )
 
 var (
-	kernel = syscall.MustLoadDLL("kernel32.dll")
+	kernel                = syscall.MustLoadDLL("kernel32.dll")
 	getModuleFileNameProc = kernel.MustFindProc("GetModuleFileNameW")
 )
+
 // GetModuleFileName() with hModule = NULL
 func executable() (exePath string, err error) {
 	return getModuleFileName()
 }
 
-func getModuleFileName() (string, error)  {
+func getModuleFileName() (string, error) {
 	var n uint32
 	b := make([]uint16, syscall.MAX_PATH)
 	size := uint32(len(b))

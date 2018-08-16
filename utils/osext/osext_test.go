@@ -17,13 +17,13 @@ const (
 
 	executableEnvValueMatch  = "match"
 	executableEnvValueDelete = "delete"
-	executableEnvValueExits = "exits"
+	executableEnvValueExits  = "exits"
 )
 
 func TestSearchDir(t *testing.T) {
 	dir, err := ExecutableFolder()
 	if err != nil {
-		t.Fatalf( "SearchDir failed: %v", err)
+		t.Fatalf("SearchDir failed: %v", err)
 	}
 
 	fi := SearchDir(dir)

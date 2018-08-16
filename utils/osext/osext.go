@@ -1,13 +1,13 @@
 package osext
 
 import (
-	"path/filepath"
+	"errors"
 	"os"
 	"os/exec"
-	"strings"
-	"errors"
-	"runtime"
 	"path"
+	"path/filepath"
+	"runtime"
+	"strings"
 )
 
 var cx, ce = executableClean()
@@ -37,8 +37,8 @@ func ExecutableFolder() (string, error) {
 }
 
 //Check file exits
-func Exits(filename string) (bool)  {
-	if _, err := os.Stat(filename) ; err != nil {
+func Exits(filename string) bool {
+	if _, err := os.Stat(filename); err != nil {
 		if os.IsNotExist(err) {
 			return false
 		}
@@ -47,7 +47,7 @@ func Exits(filename string) (bool)  {
 }
 
 //check Read Permission
-func HaveReadPermission(filename string) (bool) {
+func HaveReadPermission(filename string) bool {
 	file, err := os.OpenFile(filename, os.O_RDONLY, 0666)
 
 	if err != nil {
@@ -59,7 +59,7 @@ func HaveReadPermission(filename string) (bool) {
 }
 
 //
-func HaveWritePermission(filename string) (bool)  {
+func HaveWritePermission(filename string) bool {
 	file, err := os.OpenFile(filename, os.O_WRONLY, 0666)
 
 	if err != nil {
@@ -70,7 +70,7 @@ func HaveWritePermission(filename string) (bool)  {
 	return !os.IsPermission(err)
 }
 
-func HaveRWPermission(filename string) (bool)  {
+func HaveRWPermission(filename string) bool {
 	file, err := os.OpenFile(filename, os.O_RDWR, 0666)
 
 	if err != nil {
@@ -82,7 +82,7 @@ func HaveRWPermission(filename string) (bool)  {
 }
 
 //Search dir file
-func SearchDir(dir string)  (fi []string)  {
+func SearchDir(dir string) (fi []string) {
 	d, err := os.Open(dir)
 
 	if err != nil {

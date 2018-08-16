@@ -1,38 +1,37 @@
 package test
 
 import (
-	"testing"
-	"net/http"
-	"fmt"
-	"runtime"
-	"reflect"
-	"io/ioutil"
 	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"net/http"
+	"reflect"
+	"runtime"
+	"testing"
 	"time"
 )
 
 type MyStruct struct {
-
 }
 
 func (s *MyStruct) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "Hello World!")
 }
 
-func Hello(w http.ResponseWriter, r *http.Request)  {
+func Hello(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "Hello")
 }
 
-func World(w http.ResponseWriter, r *http.Request)  {
+func World(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "World")
 }
 
-func Test_Http(t *testing.T)  {
+func Test_Http(t *testing.T) {
 	t.Log("Test_Http Start")
 	handler := MyStruct{}
 	//http.ListenAndServe("", nil)
 	svr := http.Server{
-		Addr:"",
+		Addr: "",
 		//Handler:&handler,
 	}
 
@@ -44,7 +43,7 @@ func Test_Http(t *testing.T)  {
 	t.Log("Test_Http End")
 }
 
-func log(h http.HandlerFunc) http.HandlerFunc  {
+func log(h http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := runtime.FuncForPC(reflect.ValueOf(h).Pointer()).Name()
 		fmt.Println("Handler function called - " + name)
@@ -52,43 +51,42 @@ func log(h http.HandlerFunc) http.HandlerFunc  {
 	}
 }
 
-func Test_ChainHttp(t *testing.T)  {
+func Test_ChainHttp(t *testing.T) {
 	t.Log("Test_ChainHttp Start")
 
 	svr := http.Server{
-		Addr:"",
+		Addr: "",
 	}
 	http.HandleFunc("/hello", log(Hello))
 	svr.ListenAndServe()
 }
 
 type HelloStruct struct {
-
 }
 
-func (c HelloStruct) ServeHTTP(w http.ResponseWriter, r *http.Request)  {
+func (c HelloStruct) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "Hello world")
 }
 
-func logHandler(h http.Handler) http.Handler  {
+func logHandler(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("logHandler called - %T\n", h)
 		h.ServeHTTP(w, r)
 	})
 }
 
-func protectHandler(h http.Handler) http.Handler  {
+func protectHandler(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("protectHandler called - %T\n", h)
 		h.ServeHTTP(w, r)
 	})
 }
 
-func Test_ChainHttp_handler(t *testing.T)  {
+func Test_ChainHttp_handler(t *testing.T) {
 	hello := HelloStruct{}
 
 	svr := http.Server{
-		Addr:"",
+		Addr: "",
 		//Handler:&hello,
 	}
 
@@ -96,21 +94,21 @@ func Test_ChainHttp_handler(t *testing.T)  {
 	svr.ListenAndServe()
 }
 
-func httpHeader(w http.ResponseWriter, r *http.Request)  {
+func httpHeader(w http.ResponseWriter, r *http.Request) {
 	h := r.Header
 	fmt.Fprintln(w, h)
 }
 
-func httpBody(w http.ResponseWriter, r *http.Request)  {
+func httpBody(w http.ResponseWriter, r *http.Request) {
 	len := r.ContentLength
 	body := make([]byte, len)
 	r.Body.Read(body)
 	fmt.Fprintln(w, string(body))
 }
 
-func Test_HttpHeader(t *testing.T)  {
+func Test_HttpHeader(t *testing.T) {
 	svr := http.Server{
-		Addr:"",
+		Addr: "",
 	}
 
 	http.HandleFunc("/header", httpHeader)
@@ -118,12 +116,12 @@ func Test_HttpHeader(t *testing.T)  {
 	svr.ListenAndServe()
 }
 
-func process(w http.ResponseWriter, r *http.Request)  {
+func process(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	fmt.Fprintln(w, r.Form)
 }
 
-func processHtml_Post(w http.ResponseWriter, r *http.Request)  {
+func processHtml_Post(w http.ResponseWriter, r *http.Request) {
 	html := `<!DOCTYPE html>
 			<html lang="en">
 			<head>
@@ -142,9 +140,9 @@ func processHtml_Post(w http.ResponseWriter, r *http.Request)  {
 	fmt.Fprintln(w, html)
 }
 
-func Test_HttpForm_Post(t *testing.T)  {
+func Test_HttpForm_Post(t *testing.T) {
 	svr := http.Server{
-		Addr:"",
+		Addr: "",
 	}
 
 	http.HandleFunc("/process", process)
@@ -152,7 +150,7 @@ func Test_HttpForm_Post(t *testing.T)  {
 	svr.ListenAndServe()
 }
 
-func processHtml_Get(w http.ResponseWriter, r *http.Request)  {
+func processHtml_Get(w http.ResponseWriter, r *http.Request) {
 	html := `<!DOCTYPE html>
 			<html lang="en">
 			<head>
@@ -171,9 +169,9 @@ func processHtml_Get(w http.ResponseWriter, r *http.Request)  {
 	fmt.Fprintln(w, html)
 }
 
-func Test_HttpForm_Get(t *testing.T)  {
+func Test_HttpForm_Get(t *testing.T) {
 	svr := http.Server{
-		Addr:"",
+		Addr: "",
 	}
 
 	http.HandleFunc("/process", process)
@@ -181,7 +179,7 @@ func Test_HttpForm_Get(t *testing.T)  {
 	svr.ListenAndServe()
 }
 
-func processFile(w http.ResponseWriter, r *http.Request)  {
+func processFile(w http.ResponseWriter, r *http.Request) {
 	r.ParseMultipartForm(1024)
 	fileHeader := r.MultipartForm.File["uploaded"][0]
 	file, err := fileHeader.Open()
@@ -194,11 +192,11 @@ func processFile(w http.ResponseWriter, r *http.Request)  {
 }
 
 type Post struct {
-	User string
+	User    string
 	Threads []string
 }
 
-func processHtml_File(w http.ResponseWriter, r *http.Request)  {
+func processHtml_File(w http.ResponseWriter, r *http.Request) {
 	html := `<!DOCTYPE html>
 			<html lang="en">
 			<head>
@@ -218,11 +216,11 @@ func processHtml_File(w http.ResponseWriter, r *http.Request)  {
 	fmt.Fprintln(w, html)
 }
 
-func jsonExample(w http.ResponseWriter, r *http.Request)  {
+func jsonExample(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	post := &Post{
-		User: "Sau Sheong",
+		User:    "Sau Sheong",
 		Threads: []string{"first", "second", "third"},
 	}
 	json, _ := json.Marshal(post)
@@ -234,9 +232,9 @@ func redirectExample(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(302)
 }
 
-func Test_HttpForm_File(t *testing.T)  {
+func Test_HttpForm_File(t *testing.T) {
 	svr := http.Server{
-		Addr:"",
+		Addr: "",
 	}
 
 	http.HandleFunc("/process", processFile)
@@ -248,29 +246,29 @@ func Test_HttpForm_File(t *testing.T)  {
 }
 
 type Cookie struct {
-	Name string
-	Value string
-	Path string
-	Domain string
-	Expires time.Time
+	Name       string
+	Value      string
+	Path       string
+	Domain     string
+	Expires    time.Time
 	RawExpires string
-	MaxAge int
-	Secure bool
-	HttpOnly bool
-	Raw string
-	Unparsed []string
+	MaxAge     int
+	Secure     bool
+	HttpOnly   bool
+	Raw        string
+	Unparsed   []string
 }
 
 func setCookie(w http.ResponseWriter, r *http.Request) {
 	c1 := http.Cookie{
-		Name: "first_cookie",
-		Value: "Go Web Programming",
+		Name:     "first_cookie",
+		Value:    "Go Web Programming",
 		HttpOnly: true,
 	}
 
 	c2 := http.Cookie{
-		Name: "second_cookie",
-		Value: "Manning Publications Co",
+		Name:     "second_cookie",
+		Value:    "Manning Publications Co",
 		HttpOnly: true,
 	}
 	w.Header().Set("Set-Cookie", c1.String())
@@ -284,9 +282,9 @@ func getCookie(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, h)
 }
 
-func Test_Http_Cookie(t *testing.T)  {
+func Test_Http_Cookie(t *testing.T) {
 	svr := http.Server{
-		Addr:"",
+		Addr: "",
 	}
 
 	http.HandleFunc("/setcookie", setCookie)
