@@ -5,12 +5,10 @@
     <title>Go Web Programming</title>
 </head>
 <body>
-    <div>The dot is {{ . }}</div>
-    <div>
-        {{ template "tmpl05_1.html" . }}
-    </div>
-    <div>The dot is {{ . }} again</div>
-
-    {{ 123456.789 | printf "%.2f" }}
+    <form action="/process" method="post">
+        Comment: <input name="comment" type="text">
+        <hr/>
+     <button id="submit">Submit</button>
+    </form>
 </body>
 </html>
