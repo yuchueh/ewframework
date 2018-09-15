@@ -82,11 +82,31 @@ func form(w http.ResponseWriter, r *http.Request) {
 func processform(w http.ResponseWriter, r *http.Request) {
 	//stop the browser from protecting you from XSS attacks, you
 	//simply need to set a response header in our handler
+	//0： 表示关闭浏览器的XSS防护机制
+	//1：删除检测到的恶意代码， 如果响应报文中没有看到X-XSS-Protection 字段，那么浏览器就认为X-XSS-Protection配置为1，这是浏览器的默认设置
+	//1; mode=block：如果检测到恶意代码，在不渲染恶意代码
 	w.Header().Set("X-XSS-Protection", "0")
 	sHtmlFile := osext.GetWd() + "html" + string(os.PathSeparator) + "processform.html"
 	temp, _ := template.ParseFiles(sHtmlFile)
 	temp.Execute(w, template.HTML(r.FormValue("comment")))
 	//temp.Execute(w, r.FormValue("comment"))
+}
+
+func processlayout(w http.ResponseWriter, r *http.Request) {
+	rand.Seed(time.Now().Unix())
+	sHtmlFile := osext.GetWd() + "html" + string(os.PathSeparator) + "layout.html"
+	sHtmlFile_red := osext.GetWd() + "html" + string(os.PathSeparator) + "red_hello.html"
+	sHtmlFile_blue := osext.GetWd() + "html" + string(os.PathSeparator) + "blud_hello.html"
+
+	var t *template.Template
+	if rand.Intn(10) > 5 {
+		t, _ = template.ParseFiles(sHtmlFile, sHtmlFile_red)
+	} else {
+		t, _ = template.ParseFiles(sHtmlFile, sHtmlFile_blue)
+	}
+	//temp, _ := template.ParseFiles(sHtmlFile)
+	//temp.ExecuteTemplate(w, "layout", "")
+	t.ExecuteTemplate(w, "layout", "")
 }
 
 func Test_Template(t *testing.T) {
@@ -103,5 +123,6 @@ func Test_Template(t *testing.T) {
 	http.HandleFunc("/process07", processTemplate07)
 	http.HandleFunc("/form", form)
 	http.HandleFunc("/process", processform)
+	http.HandleFunc("/processlayout", processlayout)
 	svr.ListenAndServe()
 }
