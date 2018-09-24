@@ -27,6 +27,10 @@ import (
 	"time"
 )
 
+var (
+	// GlobalSessions is the instance for the session manager
+	GlobalSessions *Manager
+)
 // Store contains all data for one session process with specific id.
 type Store interface {
 	Set(key, value interface{}) error     //set session value
