@@ -1,4 +1,4 @@
-package ew
+package context
 
 import (
 	"fmt"
@@ -7,8 +7,7 @@ import (
 	"reflect"
 	"runtime"
 	"strconv"
-	"strings"
-	"github.com/yuchueh/ewframework/context"
+	"github.com/yuchueh/ewframework/config"
 	"github.com/yuchueh/ewframework/utils"
 )
 
@@ -67,15 +66,15 @@ var tpl = `
 `
 
 // render default application error page with error and stack string.
-func ShowErr(err interface{}, ctx *context.Context, stack string) {
+func ShowErr(err interface{}, ctx *Context, stack string) {
 	t, _ := template.New("beegoerrortemp").Parse(tpl)
 	data := map[string]string{
-		"AppError":      fmt.Sprintf("%s:%v", BConfig.AppName, err),
+		"AppError":      fmt.Sprintf("%s:%v", config.BConfig.AppName, err),
 		"RequestMethod": ctx.Input.Method(),
 		"RequestURL":    ctx.Input.URI(),
 		"RemoteAddr":    ctx.Input.IP(),
 		"Stack":         stack,
-		"EwVersion":  VERSION,
+		"EwVersion":     utils.VERSION,
 		"GoVersion":     runtime.Version(),
 	}
 	if ctx.Output.Status != 0 {
@@ -198,7 +197,7 @@ type errorInfo struct {
 var ErrorMaps = make(map[string]*errorInfo, 10)
 
 // show 401 unauthorized error.
-func unauthorized(rw http.ResponseWriter, r *http.Request) {
+func Unauthorized(rw http.ResponseWriter, r *http.Request) {
 	responseError(rw, r,
 		401,
 		"<br>The page you have requested can't be authorized."+
@@ -211,7 +210,7 @@ func unauthorized(rw http.ResponseWriter, r *http.Request) {
 }
 
 // show 402 Payment Required
-func paymentRequired(rw http.ResponseWriter, r *http.Request) {
+func PaymentRequired(rw http.ResponseWriter, r *http.Request) {
 	responseError(rw, r,
 		402,
 		"<br>The page you have requested Payment Required."+
@@ -224,7 +223,7 @@ func paymentRequired(rw http.ResponseWriter, r *http.Request) {
 }
 
 // show 403 forbidden error.
-func forbidden(rw http.ResponseWriter, r *http.Request) {
+func Forbidden(rw http.ResponseWriter, r *http.Request) {
 	responseError(rw, r,
 		403,
 		"<br>The page you have requested is forbidden."+
@@ -238,7 +237,7 @@ func forbidden(rw http.ResponseWriter, r *http.Request) {
 }
 
 // show 422 missing xsrf token
-func missingxsrf(rw http.ResponseWriter, r *http.Request) {
+func Missingxsrf(rw http.ResponseWriter, r *http.Request) {
 	responseError(rw, r,
 		422,
 		"<br>The page you have requested is forbidden."+
@@ -250,7 +249,7 @@ func missingxsrf(rw http.ResponseWriter, r *http.Request) {
 }
 
 // show 417 invalid xsrf token
-func invalidxsrf(rw http.ResponseWriter, r *http.Request) {
+func Invalidxsrf(rw http.ResponseWriter, r *http.Request) {
 	responseError(rw, r,
 		417,
 		"<br>The page you have requested is forbidden."+
@@ -262,7 +261,7 @@ func invalidxsrf(rw http.ResponseWriter, r *http.Request) {
 }
 
 // show 404 not found error.
-func notFound(rw http.ResponseWriter, r *http.Request) {
+func NotFound(rw http.ResponseWriter, r *http.Request) {
 	responseError(rw, r,
 		404,
 		"<br>The page you have requested has flown the coop."+
@@ -277,7 +276,7 @@ func notFound(rw http.ResponseWriter, r *http.Request) {
 }
 
 // show 405 Method Not Allowed
-func methodNotAllowed(rw http.ResponseWriter, r *http.Request) {
+func MethodNotAllowed(rw http.ResponseWriter, r *http.Request) {
 	responseError(rw, r,
 		405,
 		"<br>The method you have requested Not Allowed."+
@@ -290,7 +289,7 @@ func methodNotAllowed(rw http.ResponseWriter, r *http.Request) {
 }
 
 // show 500 internal server error.
-func internalServerError(rw http.ResponseWriter, r *http.Request) {
+func InternalServerError(rw http.ResponseWriter, r *http.Request) {
 	responseError(rw, r,
 		500,
 		"<br>The page you have requested is down right now."+
@@ -301,7 +300,7 @@ func internalServerError(rw http.ResponseWriter, r *http.Request) {
 }
 
 // show 501 Not Implemented.
-func notImplemented(rw http.ResponseWriter, r *http.Request) {
+func NotImplemented(rw http.ResponseWriter, r *http.Request) {
 	responseError(rw, r,
 		501,
 		"<br>The page you have requested is Not Implemented."+
@@ -312,7 +311,7 @@ func notImplemented(rw http.ResponseWriter, r *http.Request) {
 }
 
 // show 502 Bad Gateway.
-func badGateway(rw http.ResponseWriter, r *http.Request) {
+func BadGateway(rw http.ResponseWriter, r *http.Request) {
 	responseError(rw, r,
 		502,
 		"<br>The page you have requested is down right now."+
@@ -324,7 +323,7 @@ func badGateway(rw http.ResponseWriter, r *http.Request) {
 }
 
 // show 503 service unavailable error.
-func serviceUnavailable(rw http.ResponseWriter, r *http.Request) {
+func ServiceUnavailable(rw http.ResponseWriter, r *http.Request) {
 	responseError(rw, r,
 		503,
 		"<br>The page you have requested is unavailable."+
@@ -337,7 +336,7 @@ func serviceUnavailable(rw http.ResponseWriter, r *http.Request) {
 }
 
 // show 504 Gateway Timeout.
-func gatewayTimeout(rw http.ResponseWriter, r *http.Request) {
+func GatewayTimeout(rw http.ResponseWriter, r *http.Request) {
 	responseError(rw, r,
 		504,
 		"<br>The page you have requested is unavailable"+
@@ -353,7 +352,7 @@ func responseError(rw http.ResponseWriter, r *http.Request, errCode int, errCont
 	t, _ := template.New("beegoerrortemp").Parse(errtpl)
 	data := map[string]interface{}{
 		"Title":        http.StatusText(errCode),
-		"BeegoVersion": VERSION,
+		"BeegoVersion": utils.VERSION,
 		"Content":      template.HTML(errContent),
 	}
 	t.Execute(rw, data)
@@ -363,44 +362,42 @@ func responseError(rw http.ResponseWriter, r *http.Request, errCode int, errCont
 // usage:
 // 	beego.ErrorHandler("404",NotFound)
 //	beego.ErrorHandler("500",InternalServerError)
-func ErrorHandler(code string, h http.HandlerFunc) *App {
+func ErrorHandler(code string, h http.HandlerFunc) {
 	ErrorMaps[code] = &errorInfo{
 		errorType: errorTypeHandler,
 		handler:   h,
 		method:    code,
 	}
-	return BeeApp
 }
 
 // ErrorController registers ControllerInterface to each http err code string.
 // usage:
 // 	beego.ErrorController(&controllers.ErrorController{})
-func ErrorController(c ControllerInterface) *App {
-	reflectVal := reflect.ValueOf(c)
-	rt := reflectVal.Type()
-	ct := reflect.Indirect(reflectVal).Type()
-	for i := 0; i < rt.NumMethod(); i++ {
-		methodName := rt.Method(i).Name
-		if !utils.InSlice(methodName, exceptMethod) && strings.HasPrefix(methodName, "Error") {
-			errName := strings.TrimPrefix(methodName, "Error")
-			ErrorMaps[errName] = &errorInfo{
-				errorType:      errorTypeController,
-				controllerType: ct,
-				method:         methodName,
-			}
-		}
-	}
-	return BeeApp
-}
+//func ErrorController(c ControllerInterface) {
+//	reflectVal := reflect.ValueOf(c)
+//	rt := reflectVal.Type()
+//	ct := reflect.Indirect(reflectVal).Type()
+//	for i := 0; i < rt.NumMethod(); i++ {
+//		methodName := rt.Method(i).Name
+//		if !utils.InSlice(methodName, exceptMethod) && strings.HasPrefix(methodName, "Error") {
+//			errName := strings.TrimPrefix(methodName, "Error")
+//			ErrorMaps[errName] = &errorInfo{
+//				errorType:      errorTypeController,
+//				controllerType: ct,
+//				method:         methodName,
+//			}
+//		}
+//	}
+//}
 
 // Exception Write HttpStatus with errCode and Exec error handler if exist.
-func Exception(errCode uint64, ctx *context.Context) {
+func Exception(errCode uint64, ctx *Context) {
 	exception(strconv.FormatUint(errCode, 10), ctx)
 }
 
 // show error string as simple text message.
 // if error string is empty, show 503 or 500 error as default.
-func exception(errCode string, ctx *context.Context) {
+func exception(errCode string, ctx *Context) {
 	atoi := func(code string) int {
 		v, err := strconv.Atoi(code)
 		if err == nil {
@@ -423,39 +420,40 @@ func exception(errCode string, ctx *context.Context) {
 	ctx.WriteString(errCode)
 }
 
-func executeError(err *errorInfo, ctx *context.Context, code int) {
+//TODO executeError
+func executeError(err *errorInfo, ctx *Context, code int) {
 	if err.errorType == errorTypeHandler {
 		ctx.ResponseWriter.WriteHeader(code)
 		err.handler(ctx.ResponseWriter, ctx.Request)
 		return
 	}
-	if err.errorType == errorTypeController {
-		ctx.Output.SetStatus(code)
-		//Invoke the request handler
-		vc := reflect.New(err.controllerType)
-		execController, ok := vc.Interface().(ControllerInterface)
-		if !ok {
-			panic("controller is not ControllerInterface")
-		}
-		//call the controller init function
-		execController.Init(ctx, err.controllerType.Name(), err.method, vc.Interface())
-
-		//call prepare function
-		execController.Prepare()
-
-		execController.URLMapping()
-
-		method := vc.MethodByName(err.method)
-		method.Call([]reflect.Value{})
-
-		//render template
-		if BConfig.WebConfig.AutoRender {
-			if err := execController.Render(); err != nil {
-				panic(err)
-			}
-		}
-
-		// finish all runrouter. release resource
-		execController.Finish()
-	}
+	//if err.errorType == errorTypeController {
+	//	ctx.Output.SetStatus(code)
+	//	//Invoke the request handler
+	//	vc := reflect.New(err.controllerType)
+	//	execController, ok := vc.Interface().(ControllerInterface)
+	//	if !ok {
+	//		panic("controller is not ControllerInterface")
+	//	}
+	//	//call the controller init function
+	//	execController.Init(ctx, err.controllerType.Name(), err.method, vc.Interface())
+	//
+	//	//call prepare function
+	//	execController.Prepare()
+	//
+	//	execController.URLMapping()
+	//
+	//	method := vc.MethodByName(err.method)
+	//	method.Call([]reflect.Value{})
+	//
+	//	//render template
+	//	if config.BConfig.WebConfig.AutoRender {
+	//		if err := execController.Render(); err != nil {
+	//			panic(err)
+	//		}
+	//	}
+	//
+	//	// finish all runrouter. release resource
+	//	execController.Finish()
+	//}
 }

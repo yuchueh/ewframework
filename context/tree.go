@@ -11,20 +11,20 @@ var (
 	allowSuffixExt = []string{".json", ".xml", ".html"}
 )
 
-//wildcard 通配符
-// Tree has three elements: FixRouter/wildcard/leaves
+//Wildcard 通配符
+// Tree has three elements: FixRouter/Wildcard/Leaves
 // fixRouter sotres Fixed Router
-// wildcard stores params
-// leaves store the endpoint information
+// Wildcard stores params
+// Leaves store the endpoint information
 type Tree struct {
-	//prefix set for static router
-	prefix string
+	//Prefix set for static router
+	Prefix string
 	//search fix route first
-	fixrouters []*Tree
-	//if set, failure to match fixrouters search then search wildcard
-	wildcard *Tree
-	//if set, failure to match wildcard search
-	leaves []*leafInfo
+	Fixrouters []*Tree
+	//if set, failure to match Fixrouters search then search Wildcard
+	Wildcard *Tree
+	//if set, failure to match Wildcard search
+	Leaves []*leafInfo
 }
 
 // NewTree return a new Tree
@@ -33,14 +33,14 @@ func NewTree() *Tree {
 }
 
 // AddTree will add tree to the exist Tree
-// prefix should has no params
-func (t *Tree) AddTree(prefix string, tree *Tree) {
-	t.addtree(splitPath(prefix), tree, nil, "")
+// Prefix should has no params
+func (t *Tree) AddTree(Prefix string, tree *Tree) {
+	t.addtree(splitPath(Prefix), tree, nil, "")
 }
 
-func (t *Tree) addtree(segments []string, tree *Tree, wildcards []string, reg string) {
+func (t *Tree) addtree(segments []string, tree *Tree, Wildcards []string, reg string) {
 	if len(segments) == 0 {
-		panic("prefix should has path")
+		panic("Prefix should has path")
 	}
 	seg := segments[0]
 	iswild, params, regexpStr := splitSegment(seg)
@@ -48,19 +48,19 @@ func (t *Tree) addtree(segments []string, tree *Tree, wildcards []string, reg st
 	if len(params) > 0 && params[0] == ":" {
 		params = params[1:]
 		if len(segments[1:]) > 0 {
-			t.addtree(segments[1:], tree, append(wildcards, params...), reg)
+			t.addtree(segments[1:], tree, append(Wildcards, params...), reg)
 		} else {
-			filterTreeWithPrefix(tree, wildcards, reg)
+			filterTreeWithPrefix(tree, Wildcards, reg)
 		}
 	}
 	//Rule: /login/*/access match /login/2009/11/access
 	//if already has *, and when loop the access, should as a regexpStr
-	if !iswild && utils.InSlice(":splat", wildcards) {
+	if !iswild && utils.InSlice(":splat", Wildcards) {
 		iswild = true
 		regexpStr = seg
 	}
 	//Rule: /user/:id/*
-	if seg == "*" && len(wildcards) > 0 && reg == "" {
+	if seg == "*" && len(Wildcards) > 0 && reg == "" {
 		regexpStr = "(.+)"
 	}
 	if len(segments) == 1 {
@@ -68,7 +68,7 @@ func (t *Tree) addtree(segments []string, tree *Tree, wildcards []string, reg st
 			if regexpStr != "" {
 				if reg == "" {
 					rr := ""
-					for _, w := range wildcards {
+					for _, w := range Wildcards {
 						if w == ":splat" {
 							rr = rr + "(.+)/"
 						} else {
@@ -92,25 +92,25 @@ func (t *Tree) addtree(segments []string, tree *Tree, wildcards []string, reg st
 				}
 			}
 			reg = strings.Trim(reg+"/"+regexpStr, "/")
-			filterTreeWithPrefix(tree, append(wildcards, params...), reg)
-			t.wildcard = tree
+			filterTreeWithPrefix(tree, append(Wildcards, params...), reg)
+			t.Wildcard = tree
 		} else {
 			reg = strings.Trim(reg+"/"+regexpStr, "/")
-			filterTreeWithPrefix(tree, append(wildcards, params...), reg)
-			tree.prefix = seg
-			t.fixrouters = append(t.fixrouters, tree)
+			filterTreeWithPrefix(tree, append(Wildcards, params...), reg)
+			tree.Prefix = seg
+			t.Fixrouters = append(t.Fixrouters, tree)
 		}
 		return
 	}
 
 	if iswild {
-		if t.wildcard == nil {
-			t.wildcard = NewTree()
+		if t.Wildcard == nil {
+			t.Wildcard = NewTree()
 		}
 		if regexpStr != "" {
 			if reg == "" {
 				rr := ""
-				for _, w := range wildcards {
+				for _, w := range Wildcards {
 					if w == ":splat" {
 						rr = rr + "(.+)/"
 					} else {
@@ -136,94 +136,94 @@ func (t *Tree) addtree(segments []string, tree *Tree, wildcards []string, reg st
 			}
 		}
 		reg = strings.TrimRight(strings.TrimRight(reg, "/")+"/"+regexpStr, "/")
-		t.wildcard.addtree(segments[1:], tree, append(wildcards, params...), reg)
+		t.Wildcard.addtree(segments[1:], tree, append(Wildcards, params...), reg)
 	} else {
 		subTree := NewTree()
-		subTree.prefix = seg
-		t.fixrouters = append(t.fixrouters, subTree)
-		subTree.addtree(segments[1:], tree, append(wildcards, params...), reg)
+		subTree.Prefix = seg
+		t.Fixrouters = append(t.Fixrouters, subTree)
+		subTree.addtree(segments[1:], tree, append(Wildcards, params...), reg)
 	}
 }
 
-func filterTreeWithPrefix(t *Tree, wildcards []string, reg string) {
-	for _, v := range t.fixrouters {
-		filterTreeWithPrefix(v, wildcards, reg)
+func filterTreeWithPrefix(t *Tree, Wildcards []string, reg string) {
+	for _, v := range t.Fixrouters {
+		filterTreeWithPrefix(v, Wildcards, reg)
 	}
-	if t.wildcard != nil {
-		filterTreeWithPrefix(t.wildcard, wildcards, reg)
+	if t.Wildcard != nil {
+		filterTreeWithPrefix(t.Wildcard, Wildcards, reg)
 	}
-	for _, l := range t.leaves {
+	for _, l := range t.Leaves {
 		if reg != "" {
-			if l.regexps != nil {
-				l.wildcards = append(wildcards, l.wildcards...)
-				l.regexps = regexp.MustCompile("^" + reg + "/" + strings.Trim(l.regexps.String(), "^$") + "$")
+			if l.Regexps != nil {
+				l.Wildcards = append(Wildcards, l.Wildcards...)
+				l.Regexps = regexp.MustCompile("^" + reg + "/" + strings.Trim(l.Regexps.String(), "^$") + "$")
 			} else {
-				for _, v := range l.wildcards {
+				for _, v := range l.Wildcards {
 					if v == ":splat" {
 						reg = reg + "/(.+)"
 					} else {
 						reg = reg + "/([^/]+)"
 					}
 				}
-				l.regexps = regexp.MustCompile("^" + reg + "$")
-				l.wildcards = append(wildcards, l.wildcards...)
+				l.Regexps = regexp.MustCompile("^" + reg + "$")
+				l.Wildcards = append(Wildcards, l.Wildcards...)
 			}
 		} else {
-			l.wildcards = append(wildcards, l.wildcards...)
-			if l.regexps != nil {
-				for _, w := range wildcards {
+			l.Wildcards = append(Wildcards, l.Wildcards...)
+			if l.Regexps != nil {
+				for _, w := range Wildcards {
 					if w == ":splat" {
 						reg = "(.+)/" + reg
 					} else {
 						reg = "([^/]+)/" + reg
 					}
 				}
-				l.regexps = regexp.MustCompile("^" + reg + strings.Trim(l.regexps.String(), "^$") + "$")
+				l.Regexps = regexp.MustCompile("^" + reg + strings.Trim(l.Regexps.String(), "^$") + "$")
 			}
 		}
 	}
 }
 
 // AddRouter call addseg function
-func (t *Tree) AddRouter(pattern string, runObject interface{}) {
-	t.addseg(splitPath(pattern), runObject, nil, "")
+func (t *Tree) AddRouter(pattern string, RunObject interface{}) {
+	t.addseg(splitPath(pattern), RunObject, nil, "")
 }
 
 // "/"
 // "admin" ->
-func (t *Tree) addseg(segments []string, route interface{}, wildcards []string, reg string) {
+func (t *Tree) addseg(segments []string, route interface{}, Wildcards []string, reg string) {
 	if len(segments) == 0 {
 		if reg != "" {
-			t.leaves = append(t.leaves, &leafInfo{runObject: route, wildcards: wildcards, regexps: regexp.MustCompile("^" + reg + "$")})
+			t.Leaves = append(t.Leaves, &leafInfo{RunObject: route, Wildcards: Wildcards, Regexps: regexp.MustCompile("^" + reg + "$")})
 		} else {
-			t.leaves = append(t.leaves, &leafInfo{runObject: route, wildcards: wildcards})
+			t.Leaves = append(t.Leaves, &leafInfo{RunObject: route, Wildcards: Wildcards})
 		}
 	} else {
 		seg := segments[0]
 		iswild, params, regexpStr := splitSegment(seg)
 		// if it's ? meaning can igone this, so add one more rule for it
 		if len(params) > 0 && params[0] == ":" {
-			t.addseg(segments[1:], route, wildcards, reg)
+			t.addseg(segments[1:], route, Wildcards, reg)
 			params = params[1:]
 		}
 		//Rule: /login/*/access match /login/2009/11/access
 		//if already has *, and when loop the access, should as a regexpStr
-		if !iswild && utils.InSlice(":splat", wildcards) {
+		if !iswild && utils.InSlice(":splat", Wildcards) {
 			iswild = true
 			regexpStr = seg
 		}
 		//Rule: /user/:id/*
-		if seg == "*" && len(wildcards) > 0 && reg == "" {
+		if seg == "*" && len(Wildcards) > 0 && reg == "" {
 			regexpStr = "(.+)"
 		}
 		if iswild {
-			if t.wildcard == nil {
-				t.wildcard = NewTree()
+			if t.Wildcard == nil {
+				t.Wildcard = NewTree()
 			}
 			if regexpStr != "" {
 				if reg == "" {
 					rr := ""
-					for _, w := range wildcards {
+					for _, w := range Wildcards {
 						if w == ":splat" {
 							rr = rr + "(.+)/"
 						} else {
@@ -248,27 +248,27 @@ func (t *Tree) addseg(segments []string, route interface{}, wildcards []string, 
 					params = params[1:]
 				}
 			}
-			t.wildcard.addseg(segments[1:], route, append(wildcards, params...), reg+regexpStr)
+			t.Wildcard.addseg(segments[1:], route, append(Wildcards, params...), reg+regexpStr)
 		} else {
 			var subTree *Tree
-			for _, sub := range t.fixrouters {
-				if sub.prefix == seg {
+			for _, sub := range t.Fixrouters {
+				if sub.Prefix == seg {
 					subTree = sub
 					break
 				}
 			}
 			if subTree == nil {
 				subTree = NewTree()
-				subTree.prefix = seg
-				t.fixrouters = append(t.fixrouters, subTree)
+				subTree.Prefix = seg
+				t.Fixrouters = append(t.Fixrouters, subTree)
 			}
-			subTree.addseg(segments[1:], route, wildcards, reg)
+			subTree.addseg(segments[1:], route, Wildcards, reg)
 		}
 	}
 }
 
-// Match router to runObject & params
-func (t *Tree) Match(pattern string, ctx *Context) (runObject interface{}) {
+// Match router to RunObject & params
+func (t *Tree) Match(pattern string, ctx *Context) (RunObject interface{}) {
 	if len(pattern) == 0 || pattern[0] != '/' {
 		return nil
 	}
@@ -276,7 +276,7 @@ func (t *Tree) Match(pattern string, ctx *Context) (runObject interface{}) {
 	return t.match(pattern[1:], pattern, w, ctx)
 }
 
-func (t *Tree) match(treePattern string, pattern string, wildcardValues []string, ctx *Context) (runObject interface{}) {
+func (t *Tree) match(treePattern string, pattern string, WildcardValues []string, ctx *Context) (RunObject interface{}) {
 	if len(pattern) > 0 {
 		i := 0
 		for ; i < len(pattern) && pattern[i] == '/'; i++ {
@@ -285,15 +285,15 @@ func (t *Tree) match(treePattern string, pattern string, wildcardValues []string
 	}
 	// Handle leaf nodes:
 	if len(pattern) == 0 {
-		for _, l := range t.leaves {
-			if ok := l.match(treePattern, wildcardValues, ctx); ok {
-				return l.runObject
+		for _, l := range t.Leaves {
+			if ok := l.match(treePattern, WildcardValues, ctx); ok {
+				return l.RunObject
 			}
 		}
-		if t.wildcard != nil {
-			for _, l := range t.wildcard.leaves {
-				if ok := l.match(treePattern, wildcardValues, ctx); ok {
-					return l.runObject
+		if t.Wildcard != nil {
+			for _, l := range t.Wildcard.Leaves {
+				if ok := l.match(treePattern, WildcardValues, ctx); ok {
+					return l.RunObject
 				}
 			}
 		}
@@ -310,27 +310,27 @@ func (t *Tree) match(treePattern string, pattern string, wildcardValues []string
 		seg = pattern[:i]
 		pattern = pattern[i:]
 	}
-	for _, subTree := range t.fixrouters {
-		if subTree.prefix == seg {
+	for _, subTree := range t.Fixrouters {
+		if subTree.Prefix == seg {
 			if len(pattern) != 0 && pattern[0] == '/' {
 				treePattern = pattern[1:]
 			} else {
 				treePattern = pattern
 			}
-			runObject = subTree.match(treePattern, pattern, wildcardValues, ctx)
-			if runObject != nil {
+			RunObject = subTree.match(treePattern, pattern, WildcardValues, ctx)
+			if RunObject != nil {
 				break
 			}
 		}
 	}
-	if runObject == nil && len(t.fixrouters) > 0 {
+	if RunObject == nil && len(t.Fixrouters) > 0 {
 		// Filter the .json .xml .html extension
 		for _, str := range allowSuffixExt {
 			if strings.HasSuffix(seg, str) {
-				for _, subTree := range t.fixrouters {
-					if subTree.prefix == seg[:len(seg)-len(str)] {
-						runObject = subTree.match(treePattern, pattern, wildcardValues, ctx)
-						if runObject != nil {
+				for _, subTree := range t.Fixrouters {
+					if subTree.Prefix == seg[:len(seg)-len(str)] {
+						RunObject = subTree.match(treePattern, pattern, WildcardValues, ctx)
+						if RunObject != nil {
 							ctx.Input.SetParam(":ext", str[1:])
 						}
 					}
@@ -338,101 +338,101 @@ func (t *Tree) match(treePattern string, pattern string, wildcardValues []string
 			}
 		}
 	}
-	if runObject == nil && t.wildcard != nil {
-		runObject = t.wildcard.match(treePattern, pattern, append(wildcardValues, seg), ctx)
+	if RunObject == nil && t.Wildcard != nil {
+		RunObject = t.Wildcard.match(treePattern, pattern, append(WildcardValues, seg), ctx)
 	}
 
-	if runObject == nil && len(t.leaves) > 0 {
-		wildcardValues = append(wildcardValues, seg)
+	if RunObject == nil && len(t.Leaves) > 0 {
+		WildcardValues = append(WildcardValues, seg)
 		start, i := 0, 0
 		for ; i < len(pattern); i++ {
 			if pattern[i] == '/' {
 				if i != 0 && start < len(pattern) {
-					wildcardValues = append(wildcardValues, pattern[start:i])
+					WildcardValues = append(WildcardValues, pattern[start:i])
 				}
 				start = i + 1
 				continue
 			}
 		}
 		if start > 0 {
-			wildcardValues = append(wildcardValues, pattern[start:i])
+			WildcardValues = append(WildcardValues, pattern[start:i])
 		}
-		for _, l := range t.leaves {
-			if ok := l.match(treePattern, wildcardValues, ctx); ok {
-				return l.runObject
+		for _, l := range t.Leaves {
+			if ok := l.match(treePattern, WildcardValues, ctx); ok {
+				return l.RunObject
 			}
 		}
 	}
-	return runObject
+	return RunObject
 }
 
 type leafInfo struct {
-	// names of wildcards that lead to this leaf. eg, ["id" "name"] for the wildcard ":id" and ":name"
-	wildcards []string
+	// names of Wildcards that lead to this leaf. eg, ["id" "name"] for the Wildcard ":id" and ":name"
+	Wildcards []string
 
 	// if the leaf is regexp
-	regexps *regexp.Regexp
+	Regexps *regexp.Regexp
 
-	runObject interface{}
+	RunObject interface{}
 }
 
-func (leaf *leafInfo) match(treePattern string, wildcardValues []string, ctx *Context) (ok bool) {
-	//fmt.Println("Leaf:", wildcardValues, leaf.wildcards, leaf.regexps)
-	if leaf.regexps == nil {
-		if len(wildcardValues) == 0 && len(leaf.wildcards) == 0 { // static path
+func (leaf *leafInfo) match(treePattern string, WildcardValues []string, ctx *Context) (ok bool) {
+	//fmt.Println("Leaf:", WildcardValues, leaf.Wildcards, leaf.Regexps)
+	if leaf.Regexps == nil {
+		if len(WildcardValues) == 0 && len(leaf.Wildcards) == 0 { // static path
 			return true
 		}
 		// match *
-		if len(leaf.wildcards) == 1 && leaf.wildcards[0] == ":splat" {
+		if len(leaf.Wildcards) == 1 && leaf.Wildcards[0] == ":splat" {
 			ctx.Input.SetParam(":splat", treePattern)
 			return true
 		}
 		// match *.* or :id
-		if len(leaf.wildcards) >= 2 && leaf.wildcards[len(leaf.wildcards)-2] == ":path" && leaf.wildcards[len(leaf.wildcards)-1] == ":ext" {
-			if len(leaf.wildcards) == 2 {
-				lastone := wildcardValues[len(wildcardValues)-1]
+		if len(leaf.Wildcards) >= 2 && leaf.Wildcards[len(leaf.Wildcards)-2] == ":path" && leaf.Wildcards[len(leaf.Wildcards)-1] == ":ext" {
+			if len(leaf.Wildcards) == 2 {
+				lastone := WildcardValues[len(WildcardValues)-1]
 				strs := strings.SplitN(lastone, ".", 2)
 				if len(strs) == 2 {
 					ctx.Input.SetParam(":ext", strs[1])
 				}
-				ctx.Input.SetParam(":path", path.Join(path.Join(wildcardValues[:len(wildcardValues)-1]...), strs[0]))
+				ctx.Input.SetParam(":path", path.Join(path.Join(WildcardValues[:len(WildcardValues)-1]...), strs[0]))
 				return true
-			} else if len(wildcardValues) < 2 {
+			} else if len(WildcardValues) < 2 {
 				return false
 			}
 			var index int
-			for index = 0; index < len(leaf.wildcards)-2; index++ {
-				ctx.Input.SetParam(leaf.wildcards[index], wildcardValues[index])
+			for index = 0; index < len(leaf.Wildcards)-2; index++ {
+				ctx.Input.SetParam(leaf.Wildcards[index], WildcardValues[index])
 			}
-			lastone := wildcardValues[len(wildcardValues)-1]
+			lastone := WildcardValues[len(WildcardValues)-1]
 			strs := strings.SplitN(lastone, ".", 2)
 			if len(strs) == 2 {
 				ctx.Input.SetParam(":ext", strs[1])
 			}
-			if index > (len(wildcardValues) - 1) {
+			if index > (len(WildcardValues) - 1) {
 				ctx.Input.SetParam(":path", "")
 			} else {
-				ctx.Input.SetParam(":path", path.Join(path.Join(wildcardValues[index:len(wildcardValues)-1]...), strs[0]))
+				ctx.Input.SetParam(":path", path.Join(path.Join(WildcardValues[index:len(WildcardValues)-1]...), strs[0]))
 			}
 			return true
 		}
 		// match :id
-		if len(leaf.wildcards) != len(wildcardValues) {
+		if len(leaf.Wildcards) != len(WildcardValues) {
 			return false
 		}
-		for j, v := range leaf.wildcards {
-			ctx.Input.SetParam(v, wildcardValues[j])
+		for j, v := range leaf.Wildcards {
+			ctx.Input.SetParam(v, WildcardValues[j])
 		}
 		return true
 	}
 
-	if !leaf.regexps.MatchString(path.Join(wildcardValues...)) {
+	if !leaf.Regexps.MatchString(path.Join(WildcardValues...)) {
 		return false
 	}
-	matches := leaf.regexps.FindStringSubmatch(path.Join(wildcardValues...))
+	matches := leaf.Regexps.FindStringSubmatch(path.Join(WildcardValues...))
 	for i, match := range matches[1:] {
-		if i < len(leaf.wildcards) {
-			ctx.Input.SetParam(leaf.wildcards[i], match)
+		if i < len(leaf.Wildcards) {
+			ctx.Input.SetParam(leaf.Wildcards[i], match)
 		}
 	}
 	return true

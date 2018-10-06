@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"github.com/yuchueh/ewframework/config"
 )
 
 const (
@@ -142,22 +143,18 @@ func NotNil(a interface{}) (isNil bool) {
 }
 
 // GetConfig get the Appconfig
-func GetConfig(returnType, key string, defaultVal interface{}) (value interface{}, err error) {
+func GetConfig(returnType, section, key string, defaultVal interface{}) (value interface{}, err error) {
 	switch returnType {
 	case "String":
-		value = AppConfig.String(key)
+		value = config.AppConfig.String(section, key)
 	case "Bool":
-		value, err = AppConfig.Bool(key)
-	case "Int":
-		value, err = AppConfig.Int(key)
-	case "Int64":
-		value, err = AppConfig.Int64(key)
+		value, err = config.AppConfig.Bool(section, key)
+	case "Int", "Int64":
+		value, err = config.AppConfig.Int(section, key)
 	case "Float":
-		value, err = AppConfig.Float(key)
-	case "DIY":
-		value, err = AppConfig.DIY(key)
+		value, err = config.AppConfig.Float(section, key)
 	default:
-		err = errors.New("Config keys must be of type String, Bool, Int, Int64, Float, or DIY")
+		err = errors.New("Config keys must be of type String, Bool, Int, Int64, Float")
 	}
 
 	if err != nil {
@@ -247,7 +244,8 @@ func Htmlunquote(text string) string {
 //
 //  more detail http://beego.me/docs/mvc/controller/urlbuilding.md
 func URLFor(endpoint string, values ...interface{}) string {
-	return BeeApp.Handlers.URLFor(endpoint, values...)
+	//return BeeApp.Handlers.URLFor(endpoint, values...)
+	return ""
 }
 
 // AssetsJs returns script tag with src string.

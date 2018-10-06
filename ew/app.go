@@ -1,39 +1,40 @@
 package ew
 
 import (
+	"net/http"
+	"github.com/yuchueh/ewframework/router"
 	"fmt"
 	"net"
-	"net/http"
 	"net/http/fcgi"
 	"os"
-	"path"
 	"time"
-	"github.com/yuchueh/ewframework/router"
-	"github.com/astaxie/beego/grace"
+	"path"
 	"github.com/yuchueh/ewframework/config"
 	"github.com/yuchueh/ewframework/logs"
-	"github.com/yuchueh/ewframework/utils"
+	"github.com/yuchueh/ewframework/utils/osext"
+	"github.com/yuchueh/ewframework/controller"
+	"github.com/yuchueh/ewframework/filter"
 )
 
 var (
-	// BeeApp is an application instance
-	BeeApp *App
+	// EwApp is an application instance
+	EwApp *App
 )
 
 func init() {
 	// create beego application
-	BeeApp = NewApp()
+	EwApp = NewApp()
 }
 
-// App defines beego application with a new PatternServeMux.
+// App defines application with a new PatternServeMux.
 type App struct {
 	Handlers *router.ControllerRegister
 	Server   *http.Server
 }
 
-// NewApp returns a new beego application.
+// NewApp returns a new application.
 func NewApp() *App {
-	cr := NewControllerRegister()
+	cr := router.NewControllerRegister()
 	app := &App{Handlers: cr, Server: &http.Server{}}
 	return app
 }
@@ -56,7 +57,7 @@ func (app *App) Run() {
 	if config.BConfig.Listen.EnableFcgi {
 		if config.BConfig.Listen.EnableStdIo {
 			if err = fcgi.Serve(nil, app.Handlers); err == nil { // standard I/O
-				logs.Info("Use FCGI via standard I/O")
+				logs.Informational("Use FCGI via standard I/O")
 			} else {
 				logs.Critical("Cannot use FCGI via standard I/O", err)
 			}
@@ -64,7 +65,7 @@ func (app *App) Run() {
 		}
 		if config.BConfig.Listen.HTTPPort == 0 {
 			// remove the Socket file before start
-			if utils.FileExists(addr) {
+			if osext.FileExists(addr) {
 				os.Remove(addr)
 			}
 			l, err = net.Listen("unix", addr)
@@ -83,47 +84,48 @@ func (app *App) Run() {
 	app.Server.Handler = app.Handlers
 	app.Server.ReadTimeout = time.Duration(config.BConfig.Listen.ServerTimeOut) * time.Second
 	app.Server.WriteTimeout = time.Duration(config.BConfig.Listen.ServerTimeOut) * time.Second
-	app.Server.ErrorLog = logs.GetLogger("HTTP")
+	//to do list
+	//app.Server.ErrorLog = logs.NewLogger("HTTP")
 
 	// run graceful mode
-	if config.BConfig.Listen.Graceful {
-		httpsAddr := config.BConfig.Listen.HTTPSAddr
-		app.Server.Addr = httpsAddr
-		if config.BConfig.Listen.EnableHTTPS {
-			go func() {
-				time.Sleep(20 * time.Microsecond)
-				if config.BConfig.Listen.HTTPSPort != 0 {
-					httpsAddr = fmt.Sprintf("%s:%d", config.BConfig.Listen.HTTPSAddr, config.BConfig.Listen.HTTPSPort)
-					app.Server.Addr = httpsAddr
-				}
-				server := grace.NewServer(httpsAddr, app.Handlers)
-				server.Server.ReadTimeout = app.Server.ReadTimeout
-				server.Server.WriteTimeout = app.Server.WriteTimeout
-				if err := server.ListenAndServeTLS(config.BConfig.Listen.HTTPSCertFile, config.BConfig.Listen.HTTPSKeyFile); err != nil {
-					logs.Critical("ListenAndServeTLS: ", err, fmt.Sprintf("%d", os.Getpid()))
-					time.Sleep(100 * time.Microsecond)
-					endRunning <- true
-				}
-			}()
-		}
-		if config.BConfig.Listen.EnableHTTP {
-			go func() {
-				server := grace.NewServer(addr, app.Handlers)
-				server.Server.ReadTimeout = app.Server.ReadTimeout
-				server.Server.WriteTimeout = app.Server.WriteTimeout
-				if config.BConfig.Listen.ListenTCP4 {
-					server.Network = "tcp4"
-				}
-				if err := server.ListenAndServe(); err != nil {
-					logs.Critical("ListenAndServe: ", err, fmt.Sprintf("%d", os.Getpid()))
-					time.Sleep(100 * time.Microsecond)
-					endRunning <- true
-				}
-			}()
-		}
-		<-endRunning
-		return
-	}
+	//if config.BConfig.Listen.Graceful {
+	//	httpsAddr := config.BConfig.Listen.HTTPSAddr
+	//	app.Server.Addr = httpsAddr
+	//	if config.BConfig.Listen.EnableHTTPS {
+	//		go func() {
+	//			time.Sleep(20 * time.Microsecond)
+	//			if config.BConfig.Listen.HTTPSPort != 0 {
+	//				httpsAddr = fmt.Sprintf("%s:%d", config.BConfig.Listen.HTTPSAddr, config.BConfig.Listen.HTTPSPort)
+	//				app.Server.Addr = httpsAddr
+	//			}
+	//			server := grace.NewServer(httpsAddr, app.Handlers)
+	//			server.Server.ReadTimeout = app.Server.ReadTimeout
+	//			server.Server.WriteTimeout = app.Server.WriteTimeout
+	//			if err := server.ListenAndServeTLS(config.BConfig.Listen.HTTPSCertFile, config.BConfig.Listen.HTTPSKeyFile); err != nil {
+	//				logs.Critical("ListenAndServeTLS: ", err, fmt.Sprintf("%d", os.Getpid()))
+	//				time.Sleep(100 * time.Microsecond)
+	//				endRunning <- true
+	//			}
+	//		}()
+	//	}
+	//	if config.BConfig.Listen.EnableHTTP {
+	//		go func() {
+	//			server := grace.NewServer(addr, app.Handlers)
+	//			server.Server.ReadTimeout = app.Server.ReadTimeout
+	//			server.Server.WriteTimeout = app.Server.WriteTimeout
+	//			if config.BConfig.Listen.ListenTCP4 {
+	//				server.Network = "tcp4"
+	//			}
+	//			if err := server.ListenAndServe(); err != nil {
+	//				logs.Critical("ListenAndServe: ", err, fmt.Sprintf("%d", os.Getpid()))
+	//				time.Sleep(100 * time.Microsecond)
+	//				endRunning <- true
+	//			}
+	//		}()
+	//	}
+	//	<-endRunning
+	//	return
+	//}
 
 	// run normal mode
 	if config.BConfig.Listen.EnableHTTPS {
@@ -132,10 +134,10 @@ func (app *App) Run() {
 			if config.BConfig.Listen.HTTPSPort != 0 {
 				app.Server.Addr = fmt.Sprintf("%s:%d", config.BConfig.Listen.HTTPSAddr, config.BConfig.Listen.HTTPSPort)
 			} else if config.BConfig.Listen.EnableHTTP {
-				BeeLogger.Info("Start https server error, confict with http.Please reset https port")
+				logs.Informational("Start https server error, confict with http.Please reset https port")
 				return
 			}
-			logs.Info("https server Running on https://%s", app.Server.Addr)
+			logs.Informational("https server Running on https://%s", app.Server.Addr)
 			if err := app.Server.ListenAndServeTLS(config.BConfig.Listen.HTTPSCertFile, config.BConfig.Listen.HTTPSKeyFile); err != nil {
 				logs.Critical("ListenAndServeTLS: ", err)
 				time.Sleep(100 * time.Microsecond)
@@ -146,7 +148,7 @@ func (app *App) Run() {
 	if config.BConfig.Listen.EnableHTTP {
 		go func() {
 			app.Server.Addr = addr
-			logs.Info("http server Running on http://%s", app.Server.Addr)
+			logs.Informational("http server Running on http://%s", app.Server.Addr)
 			if config.BConfig.Listen.ListenTCP4 {
 				ln, err := net.Listen("tcp4", app.Server.Addr)
 				if err != nil {
@@ -173,7 +175,7 @@ func (app *App) Run() {
 	<-endRunning
 }
 
-// Router adds a patterned controller handler to BeeApp.
+// Router adds a patterned controller handler to EwApp.
 // it's an alias method of App.Router.
 // usage:
 //  simple router
@@ -189,9 +191,9 @@ func (app *App) Run() {
 //  beego.Router("/api/create",&RestController{},"post:CreateFood")
 //  beego.Router("/api/update",&RestController{},"put:UpdateFood")
 //  beego.Router("/api/delete",&RestController{},"delete:DeleteFood")
-func Router(rootpath string, c ControllerInterface, mappingMethods ...string) *App {
-	BeeApp.Handlers.Add(rootpath, c, mappingMethods...)
-	return BeeApp
+func Router(rootpath string, c controller.ControllerInterface, mappingMethods ...string) *App {
+	EwApp.Handlers.Add(rootpath, c, mappingMethods...)
+	return EwApp
 }
 
 // Include will generate router file in the router/xxx.go from the controller's comments
@@ -221,36 +223,36 @@ func Router(rootpath string, c ControllerInterface, mappingMethods ...string) *A
 // the comments @router url methodlist
 // url support all the function Router's pattern
 // methodlist [get post head put delete options *]
-func Include(cList ...ControllerInterface) *App {
-	BeeApp.Handlers.Include(cList...)
-	return BeeApp
+func Include(cList ...controller.ControllerInterface) *App {
+	EwApp.Handlers.Include(cList...)
+	return EwApp
 }
 
-// RESTRouter adds a restful controller handler to BeeApp.
+// RESTRouter adds a restful controller handler to EwApp.
 // its' controller implements beego.ControllerInterface and
 // defines a param "pattern/:objectId" to visit each resource.
-func RESTRouter(rootpath string, c ControllerInterface) *App {
+func RESTRouter(rootpath string, c controller.ControllerInterface) *App {
 	Router(rootpath, c)
 	Router(path.Join(rootpath, ":objectId"), c)
-	return BeeApp
+	return EwApp
 }
 
-// AutoRouter adds defined controller handler to BeeApp.
+// AutoRouter adds defined controller handler to EwApp.
 // it's same to App.AutoRouter.
 // if beego.AddAuto(&MainContorlller{}) and MainController has methods List and Page,
 // visit the url /main/list to exec List function or /main/page to exec Page function.
-func AutoRouter(c ControllerInterface) *App {
-	BeeApp.Handlers.AddAuto(c)
-	return BeeApp
+func AutoRouter(c controller.ControllerInterface) *App {
+	EwApp.Handlers.AddAuto(c)
+	return EwApp
 }
 
-// AutoPrefix adds controller handler to BeeApp with prefix.
+// AutoPrefix adds controller handler to EwApp with prefix.
 // it's same to App.AutoRouterWithPrefix.
 // if beego.AutoPrefix("/admin",&MainContorlller{}) and MainController has methods List and Page,
 // visit the url /admin/main/list to exec List function or /admin/main/page to exec Page function.
-func AutoPrefix(prefix string, c ControllerInterface) *App {
-	BeeApp.Handlers.AddAutoPrefix(prefix, c)
-	return BeeApp
+func AutoPrefix(prefix string, c controller.ControllerInterface) *App {
+	EwApp.Handlers.AddAutoPrefix(prefix, c)
+	return EwApp
 }
 
 // Get used to register router for Get method
@@ -258,9 +260,9 @@ func AutoPrefix(prefix string, c ControllerInterface) *App {
 //    beego.Get("/", func(ctx *context.Context){
 //          ctx.Output.Body("hello world")
 //    })
-func Get(rootpath string, f FilterFunc) *App {
-	BeeApp.Handlers.Get(rootpath, f)
-	return BeeApp
+func Get(rootpath string, f filter.FilterFunc) *App {
+	EwApp.Handlers.Get(rootpath, f)
+	return EwApp
 }
 
 // Post used to register router for Post method
@@ -268,9 +270,9 @@ func Get(rootpath string, f FilterFunc) *App {
 //    beego.Post("/api", func(ctx *context.Context){
 //          ctx.Output.Body("hello world")
 //    })
-func Post(rootpath string, f FilterFunc) *App {
-	BeeApp.Handlers.Post(rootpath, f)
-	return BeeApp
+func Post(rootpath string, f filter.FilterFunc) *App {
+	EwApp.Handlers.Post(rootpath, f)
+	return EwApp
 }
 
 // Delete used to register router for Delete method
@@ -278,9 +280,9 @@ func Post(rootpath string, f FilterFunc) *App {
 //    beego.Delete("/api", func(ctx *context.Context){
 //          ctx.Output.Body("hello world")
 //    })
-func Delete(rootpath string, f FilterFunc) *App {
-	BeeApp.Handlers.Delete(rootpath, f)
-	return BeeApp
+func Delete(rootpath string, f filter.FilterFunc) *App {
+	EwApp.Handlers.Delete(rootpath, f)
+	return EwApp
 }
 
 // Put used to register router for Put method
@@ -288,9 +290,9 @@ func Delete(rootpath string, f FilterFunc) *App {
 //    beego.Put("/api", func(ctx *context.Context){
 //          ctx.Output.Body("hello world")
 //    })
-func Put(rootpath string, f FilterFunc) *App {
-	BeeApp.Handlers.Put(rootpath, f)
-	return BeeApp
+func Put(rootpath string, f filter.FilterFunc) *App {
+	EwApp.Handlers.Put(rootpath, f)
+	return EwApp
 }
 
 // Head used to register router for Head method
@@ -298,9 +300,9 @@ func Put(rootpath string, f FilterFunc) *App {
 //    beego.Head("/api", func(ctx *context.Context){
 //          ctx.Output.Body("hello world")
 //    })
-func Head(rootpath string, f FilterFunc) *App {
-	BeeApp.Handlers.Head(rootpath, f)
-	return BeeApp
+func Head(rootpath string, f filter.FilterFunc) *App {
+	EwApp.Handlers.Head(rootpath, f)
+	return EwApp
 }
 
 // Options used to register router for Options method
@@ -308,9 +310,9 @@ func Head(rootpath string, f FilterFunc) *App {
 //    beego.Options("/api", func(ctx *context.Context){
 //          ctx.Output.Body("hello world")
 //    })
-func Options(rootpath string, f FilterFunc) *App {
-	BeeApp.Handlers.Options(rootpath, f)
-	return BeeApp
+func Options(rootpath string, f filter.FilterFunc) *App {
+	EwApp.Handlers.Options(rootpath, f)
+	return EwApp
 }
 
 // Patch used to register router for Patch method
@@ -318,9 +320,9 @@ func Options(rootpath string, f FilterFunc) *App {
 //    beego.Patch("/api", func(ctx *context.Context){
 //          ctx.Output.Body("hello world")
 //    })
-func Patch(rootpath string, f FilterFunc) *App {
-	BeeApp.Handlers.Patch(rootpath, f)
-	return BeeApp
+func Patch(rootpath string, f filter.FilterFunc) *App {
+	EwApp.Handlers.Patch(rootpath, f)
+	return EwApp
 }
 
 // Any used to register router for all methods
@@ -328,9 +330,9 @@ func Patch(rootpath string, f FilterFunc) *App {
 //    beego.Any("/api", func(ctx *context.Context){
 //          ctx.Output.Body("hello world")
 //    })
-func Any(rootpath string, f FilterFunc) *App {
-	BeeApp.Handlers.Any(rootpath, f)
-	return BeeApp
+func Any(rootpath string, f filter.FilterFunc) *App {
+	EwApp.Handlers.Any(rootpath, f)
+	return EwApp
 }
 
 // Handler used to register a Handler router
@@ -339,15 +341,15 @@ func Any(rootpath string, f FilterFunc) *App {
 //          fmt.Fprintf(w, "Hello, %q", html.EscapeString(r.URL.Path))
 //    }))
 func Handler(rootpath string, h http.Handler, options ...interface{}) *App {
-	BeeApp.Handlers.Handler(rootpath, h, options...)
-	return BeeApp
+	EwApp.Handlers.Handler(rootpath, h, options...)
+	return EwApp
 }
 
 // InsertFilter adds a FilterFunc with pattern condition and action constant.
 // The pos means action constant including
 // beego.BeforeStatic, beego.BeforeRouter, beego.BeforeExec, beego.AfterExec and beego.FinishRouter.
 // The bool params is for setting the returnOnOutput value (false allows multiple filters to execute)
-func InsertFilter(pattern string, pos int, filter FilterFunc, params ...bool) *App {
-	BeeApp.Handlers.InsertFilter(pattern, pos, filter, params...)
-	return BeeApp
+func InsertFilter(pattern string, pos int, filter filter.FilterFunc, params ...bool) *App {
+	EwApp.Handlers.InsertFilter(pattern, pos, filter, params...)
+	return EwApp
 }

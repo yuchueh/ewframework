@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ew
+package context
 
 import (
 	"net/http"
@@ -20,10 +20,11 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"github.com/yuchueh/ewframework/controller"
 )
 
 type errorTestController struct {
-	Controller
+	controller.Controller
 }
 
 const parseCodeError = "parse code error"

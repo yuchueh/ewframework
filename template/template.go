@@ -11,7 +11,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
-	"github.com/yuchueh/ewframework/ew"
+	"github.com/yuchueh/ewframework/config"
 	"github.com/yuchueh/ewframework/logs"
 	"github.com/yuchueh/ewframework/utils"
 	"github.com/yuchueh/ewframework/utils/osext"
@@ -33,14 +33,14 @@ var (
 // writing the output to wr.
 // A template will be executed safely in parallel.
 func ExecuteTemplate(wr io.Writer, name string, data interface{}) error {
-	return ExecuteViewPathTemplate(wr, name, ew.BConfig.WebConfig.ViewsPath, data)
+	return ExecuteViewPathTemplate(wr, name, config.BConfig.WebConfig.ViewsPath, data)
 }
 
 // ExecuteViewPathTemplate applies the template with name and from specific viewPath to the specified data object,
 // writing the output to wr.
 // A template will be executed safely in parallel.
 func ExecuteViewPathTemplate(wr io.Writer, name string, viewPath string, data interface{}) error {
-	if ew.BConfig.RunMode == ew.DEV {
+	if config.BConfig.RunMode == utils.DEV {
 		templatesLock.RLock()
 		defer templatesLock.RUnlock()
 	}
@@ -161,7 +161,7 @@ func AddViewPath(viewPath string) error {
 	return BuildTemplate(viewPath)
 }
 
-func lockViewPaths() {
+func LockViewPaths() {
 	beeViewPathTemplateLocked = true
 }
 
@@ -236,7 +236,7 @@ func getTplDeep(root, file, parent string, t *template.Template) (*template.Temp
 	if err != nil {
 		return nil, [][]string{}, err
 	}
-	reg := regexp.MustCompile(ew.BConfig.WebConfig.TemplateLeft + "[ ]*template[ ]+\"([^\"]+)\"")
+	reg := regexp.MustCompile(config.BConfig.WebConfig.TemplateLeft + "[ ]*template[ ]+\"([^\"]+)\"")
 	allSub := reg.FindAllStringSubmatch(string(data), -1)
 	for _, m := range allSub {
 		if len(m) == 2 {
@@ -257,7 +257,7 @@ func getTplDeep(root, file, parent string, t *template.Template) (*template.Temp
 }
 
 func getTemplate(root, file string, others ...string) (t *template.Template, err error) {
-	t = template.New(file).Delims(ew.BConfig.WebConfig.TemplateLeft, ew.BConfig.WebConfig.TemplateRight).Funcs(beegoTplFuncMap)
+	t = template.New(file).Delims(config.BConfig.WebConfig.TemplateLeft, config.BConfig.WebConfig.TemplateRight).Funcs(beegoTplFuncMap)
 	var subMods [][]string
 	t, subMods, err = getTplDeep(root, file, "", t)
 	if err != nil {
@@ -300,7 +300,7 @@ func _getTemplate(t0 *template.Template, root string, subMods [][]string, others
 				if err != nil {
 					continue
 				}
-				reg := regexp.MustCompile(ew.BConfig.WebConfig.TemplateLeft + "[ ]*define[ ]+\"([^\"]+)\"")
+				reg := regexp.MustCompile(config.BConfig.WebConfig.TemplateLeft + "[ ]*define[ ]+\"([^\"]+)\"")
 				allSub := reg.FindAllStringSubmatch(string(data), -1)
 				for _, sub := range allSub {
 					if len(sub) == 2 && sub[1] == m[1] {
@@ -322,39 +322,35 @@ func _getTemplate(t0 *template.Template, root string, subMods [][]string, others
 }
 
 // SetViewsPath sets view directory path in beego application.
-func SetViewsPath(path string) *App {
-	BConfig.WebConfig.ViewsPath = path
-	return BeeApp
+func SetViewsPath(path string) {
+	config.BConfig.WebConfig.ViewsPath = path
 }
 
 // SetStaticPath sets static directory path and proper url pattern in beego application.
 // if beego.SetStaticPath("static","public"), visit /static/* to load static file in folder "public".
-func SetStaticPath(url string, path string) *App {
+func SetStaticPath(url string, path string) {
 	if !strings.HasPrefix(url, "/") {
 		url = "/" + url
 	}
 	if url != "/" {
 		url = strings.TrimRight(url, "/")
 	}
-	BConfig.WebConfig.StaticDir[url] = path
-	return BeeApp
+	config.BConfig.WebConfig.StaticDir[url] = path
 }
 
 // DelStaticPath removes the static folder setting in this url pattern in beego application.
-func DelStaticPath(url string) *App {
+func DelStaticPath(url string) {
 	if !strings.HasPrefix(url, "/") {
 		url = "/" + url
 	}
 	if url != "/" {
 		url = strings.TrimRight(url, "/")
 	}
-	delete(BConfig.WebConfig.StaticDir, url)
-	return BeeApp
+	delete(config.BConfig.WebConfig.StaticDir, url)
 }
 
 // AddTemplateEngine add a new templatePreProcessor which support extension
-func AddTemplateEngine(extension string, fn templatePreProcessor) *App {
+func AddTemplateEngine(extension string, fn templatePreProcessor) {
 	AddTemplateExt(extension)
 	beeTemplateEngines[extension] = fn
-	return BeeApp
 }

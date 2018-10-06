@@ -6,6 +6,7 @@ import (
 	"github.com/yuchueh/ewframework/utils/osext"
 	"errors"
 	"github.com/yuchueh/ewframework/utils"
+	"strings"
 )
 
 // Config is the main struct for BConfig
@@ -248,6 +249,17 @@ func (b *ewAppConfig) String(section, key string) string {
 	return val
 }
 
+func (b *ewAppConfig) Strings(section, key string) []string {
+	v, err := b.innerConfig.String(section, key)
+	if err != nil {
+	  return nil
+	}
+	if v == "" {
+		return nil
+	}
+	return strings.Split(v, ";")
+}
+
 func (b *ewAppConfig) Int(section, key string) (int, error) {
 	return b.innerConfig.Int(section, key)
 }
@@ -262,6 +274,13 @@ func (b *ewAppConfig) Float(section, key string) (float64, error) {
 
 func (b *ewAppConfig) DefaultString(section, key string, defaultVal string) string {
 	if v := b.String(section, key); v != "" {
+		return v
+	}
+	return defaultVal
+}
+
+func (b *ewAppConfig) DefaultStrings(section, key string, defaultVal []string) []string {
+	if v := b.Strings(section, key); len(v) != 0 {
 		return v
 	}
 	return defaultVal
