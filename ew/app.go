@@ -22,7 +22,7 @@ var (
 )
 
 func init() {
-	// create beego application
+	// create ew application
 	EwApp = NewApp()
 }
 
@@ -34,18 +34,21 @@ type App struct {
 
 // NewApp returns a new application.
 func NewApp() *App {
+	logs.Debug("app.NewApp")
 	cr := router.NewControllerRegister()
 	app := &App{Handlers: cr, Server: &http.Server{}}
 	return app
 }
 
-// Run beego application.
+// Run ew application.
 func (app *App) Run() {
+	logs.Debug("app.Run()")
 	addr := config.BConfig.Listen.HTTPAddr
 
 	if config.BConfig.Listen.HTTPPort != 0 {
 		addr = fmt.Sprintf("%s:%d", config.BConfig.Listen.HTTPAddr, config.BConfig.Listen.HTTPPort)
 	}
+	logs.Debug("app.Run.addr=", addr)
 
 	var (
 		err        error
@@ -55,6 +58,8 @@ func (app *App) Run() {
 
 	// run cgi server
 	if config.BConfig.Listen.EnableFcgi {
+		logs.Informational("Listen.EnableFcgi=true")
+
 		if config.BConfig.Listen.EnableStdIo {
 			if err = fcgi.Serve(nil, app.Handlers); err == nil { // standard I/O
 				logs.Informational("Use FCGI via standard I/O")
@@ -81,11 +86,12 @@ func (app *App) Run() {
 		return
 	}
 
+	//Bind Server Handler
+	logs.Debug("Bind Server Handler:", app.Handlers)
 	app.Server.Handler = app.Handlers
 	app.Server.ReadTimeout = time.Duration(config.BConfig.Listen.ServerTimeOut) * time.Second
 	app.Server.WriteTimeout = time.Duration(config.BConfig.Listen.ServerTimeOut) * time.Second
-	//to do list
-	//app.Server.ErrorLog = logs.NewLogger("HTTP")
+	app.Server.ErrorLog = logs.GetLogger("HTTP")
 
 	// run graceful mode
 	//if config.BConfig.Listen.Graceful {
@@ -127,7 +133,7 @@ func (app *App) Run() {
 	//	return
 	//}
 
-	// run normal mode
+	// run normal mode EnableHTTPS
 	if config.BConfig.Listen.EnableHTTPS {
 		go func() {
 			time.Sleep(20 * time.Microsecond)
@@ -145,10 +151,20 @@ func (app *App) Run() {
 			}
 		}()
 	}
+
+	//EnableHTTP
 	if config.BConfig.Listen.EnableHTTP {
 		go func() {
 			app.Server.Addr = addr
-			logs.Informational("http server Running on http://%s", app.Server.Addr)
+
+			//Listen.HTTPSAddr
+			if len(config.BConfig.Listen.HTTPSAddr) == 0 {
+				//localhost
+				logs.Informational("http server Running on http://localhost:", config.BConfig.Listen.HTTPPort)
+			} else {
+				logs.Informational("http server Running on http://", app.Server.Addr)
+			}
+
 			if config.BConfig.Listen.ListenTCP4 {
 				ln, err := net.Listen("tcp4", app.Server.Addr)
 				if err != nil {
@@ -179,18 +195,18 @@ func (app *App) Run() {
 // it's an alias method of App.Router.
 // usage:
 //  simple router
-//  beego.Router("/admin", &admin.UserController{})
-//  beego.Router("/admin/index", &admin.ArticleController{})
+//  ew.Router("/admin", &admin.UserController{})
+//  ew.Router("/admin/index", &admin.ArticleController{})
 //
 //  regex router
 //
-//  beego.Router("/api/:id([0-9]+)", &controllers.RController{})
+//  ew.Router("/api/:id([0-9]+)", &controllers.RController{})
 //
 //  custom rules
-//  beego.Router("/api/list",&RestController{},"*:ListFood")
-//  beego.Router("/api/create",&RestController{},"post:CreateFood")
-//  beego.Router("/api/update",&RestController{},"put:UpdateFood")
-//  beego.Router("/api/delete",&RestController{},"delete:DeleteFood")
+//  ew.Router("/api/list",&RestController{},"*:ListFood")
+//  ew.Router("/api/create",&RestController{},"post:CreateFood")
+//  ew.Router("/api/update",&RestController{},"put:UpdateFood")
+//  ew.Router("/api/delete",&RestController{},"delete:DeleteFood")
 func Router(rootpath string, c controller.ControllerInterface, mappingMethods ...string) *App {
 	EwApp.Handlers.Add(rootpath, c, mappingMethods...)
 	return EwApp
@@ -198,9 +214,9 @@ func Router(rootpath string, c controller.ControllerInterface, mappingMethods ..
 
 // Include will generate router file in the router/xxx.go from the controller's comments
 // usage:
-// beego.Include(&BankAccount{}, &OrderController{},&RefundController{},&ReceiptController{})
+// ew.Include(&BankAccount{}, &OrderController{},&RefundController{},&ReceiptController{})
 // type BankAccount struct{
-//   beego.Controller
+//   ew.Controller
 // }
 //
 // register the function
@@ -229,7 +245,7 @@ func Include(cList ...controller.ControllerInterface) *App {
 }
 
 // RESTRouter adds a restful controller handler to EwApp.
-// its' controller implements beego.ControllerInterface and
+// its' controller implements ew.ControllerInterface and
 // defines a param "pattern/:objectId" to visit each resource.
 func RESTRouter(rootpath string, c controller.ControllerInterface) *App {
 	Router(rootpath, c)
@@ -239,7 +255,7 @@ func RESTRouter(rootpath string, c controller.ControllerInterface) *App {
 
 // AutoRouter adds defined controller handler to EwApp.
 // it's same to App.AutoRouter.
-// if beego.AddAuto(&MainContorlller{}) and MainController has methods List and Page,
+// if ew.AddAuto(&MainContorlller{}) and MainController has methods List and Page,
 // visit the url /main/list to exec List function or /main/page to exec Page function.
 func AutoRouter(c controller.ControllerInterface) *App {
 	EwApp.Handlers.AddAuto(c)
@@ -248,7 +264,7 @@ func AutoRouter(c controller.ControllerInterface) *App {
 
 // AutoPrefix adds controller handler to EwApp with prefix.
 // it's same to App.AutoRouterWithPrefix.
-// if beego.AutoPrefix("/admin",&MainContorlller{}) and MainController has methods List and Page,
+// if ew.AutoPrefix("/admin",&MainContorlller{}) and MainController has methods List and Page,
 // visit the url /admin/main/list to exec List function or /admin/main/page to exec Page function.
 func AutoPrefix(prefix string, c controller.ControllerInterface) *App {
 	EwApp.Handlers.AddAutoPrefix(prefix, c)
@@ -257,7 +273,7 @@ func AutoPrefix(prefix string, c controller.ControllerInterface) *App {
 
 // Get used to register router for Get method
 // usage:
-//    beego.Get("/", func(ctx *context.Context){
+//    ew.Get("/", func(ctx *context.Context){
 //          ctx.Output.Body("hello world")
 //    })
 func Get(rootpath string, f filter.FilterFunc) *App {
@@ -267,7 +283,7 @@ func Get(rootpath string, f filter.FilterFunc) *App {
 
 // Post used to register router for Post method
 // usage:
-//    beego.Post("/api", func(ctx *context.Context){
+//    ew.Post("/api", func(ctx *context.Context){
 //          ctx.Output.Body("hello world")
 //    })
 func Post(rootpath string, f filter.FilterFunc) *App {
@@ -277,7 +293,7 @@ func Post(rootpath string, f filter.FilterFunc) *App {
 
 // Delete used to register router for Delete method
 // usage:
-//    beego.Delete("/api", func(ctx *context.Context){
+//    ew.Delete("/api", func(ctx *context.Context){
 //          ctx.Output.Body("hello world")
 //    })
 func Delete(rootpath string, f filter.FilterFunc) *App {
@@ -287,7 +303,7 @@ func Delete(rootpath string, f filter.FilterFunc) *App {
 
 // Put used to register router for Put method
 // usage:
-//    beego.Put("/api", func(ctx *context.Context){
+//    ew.Put("/api", func(ctx *context.Context){
 //          ctx.Output.Body("hello world")
 //    })
 func Put(rootpath string, f filter.FilterFunc) *App {
@@ -297,7 +313,7 @@ func Put(rootpath string, f filter.FilterFunc) *App {
 
 // Head used to register router for Head method
 // usage:
-//    beego.Head("/api", func(ctx *context.Context){
+//    ew.Head("/api", func(ctx *context.Context){
 //          ctx.Output.Body("hello world")
 //    })
 func Head(rootpath string, f filter.FilterFunc) *App {
@@ -307,7 +323,7 @@ func Head(rootpath string, f filter.FilterFunc) *App {
 
 // Options used to register router for Options method
 // usage:
-//    beego.Options("/api", func(ctx *context.Context){
+//    ew.Options("/api", func(ctx *context.Context){
 //          ctx.Output.Body("hello world")
 //    })
 func Options(rootpath string, f filter.FilterFunc) *App {
@@ -317,7 +333,7 @@ func Options(rootpath string, f filter.FilterFunc) *App {
 
 // Patch used to register router for Patch method
 // usage:
-//    beego.Patch("/api", func(ctx *context.Context){
+//    ew.Patch("/api", func(ctx *context.Context){
 //          ctx.Output.Body("hello world")
 //    })
 func Patch(rootpath string, f filter.FilterFunc) *App {
@@ -327,7 +343,7 @@ func Patch(rootpath string, f filter.FilterFunc) *App {
 
 // Any used to register router for all methods
 // usage:
-//    beego.Any("/api", func(ctx *context.Context){
+//    ew.Any("/api", func(ctx *context.Context){
 //          ctx.Output.Body("hello world")
 //    })
 func Any(rootpath string, f filter.FilterFunc) *App {
@@ -337,7 +353,7 @@ func Any(rootpath string, f filter.FilterFunc) *App {
 
 // Handler used to register a Handler router
 // usage:
-//    beego.Handler("/api", http.HandlerFunc(func (w http.ResponseWriter, r *http.Request) {
+//    ew.Handler("/api", http.HandlerFunc(func (w http.ResponseWriter, r *http.Request) {
 //          fmt.Fprintf(w, "Hello, %q", html.EscapeString(r.URL.Path))
 //    }))
 func Handler(rootpath string, h http.Handler, options ...interface{}) *App {
@@ -347,7 +363,7 @@ func Handler(rootpath string, h http.Handler, options ...interface{}) *App {
 
 // InsertFilter adds a FilterFunc with pattern condition and action constant.
 // The pos means action constant including
-// beego.BeforeStatic, beego.BeforeRouter, beego.BeforeExec, beego.AfterExec and beego.FinishRouter.
+// ew.BeforeStatic, ew.BeforeRouter, ew.BeforeExec, ew.AfterExec and ew.FinishRouter.
 // The bool params is for setting the returnOnOutput value (false allows multiple filters to execute)
 func InsertFilter(pattern string, pos int, filter filter.FilterFunc, params ...bool) *App {
 	EwApp.Handlers.InsertFilter(pattern, pos, filter, params...)

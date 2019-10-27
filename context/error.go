@@ -58,7 +58,7 @@ var tpl = `
         </div>
     </div>
     <div id="footer">
-        <p>beego {{ .BeegoVersion }} (beego framework)</p>
+        <p>beego {{ .EwgoVersion }} (beego framework)</p>
         <p>golang version: {{.GoVersion}}</p>
     </div>
 </body>
@@ -67,7 +67,7 @@ var tpl = `
 
 // render default application error page with error and stack string.
 func ShowErr(err interface{}, ctx *Context, stack string) {
-	t, _ := template.New("beegoerrortemp").Parse(tpl)
+	t, _ := template.New("ewgoerrortemp").Parse(tpl)
 	data := map[string]string{
 		"AppError":      fmt.Sprintf("%s:%v", config.BConfig.AppName, err),
 		"RequestMethod": ctx.Input.Method(),
@@ -176,8 +176,6 @@ var errtpl = `
 				<div id="content">
 					{{.Content}}
 					<a href="/" title="Home" class="button">Go Home</a><br />
-
-					<br>Powered by beego {{.BeegoVersion}}
 				</div>
 			</div>
 		</div>
@@ -349,10 +347,10 @@ func GatewayTimeout(rw http.ResponseWriter, r *http.Request) {
 }
 
 func responseError(rw http.ResponseWriter, r *http.Request, errCode int, errContent string) {
-	t, _ := template.New("beegoerrortemp").Parse(errtpl)
+	t, _ := template.New("ewgoerrortemp").Parse(errtpl)
 	data := map[string]interface{}{
-		"Title":        http.StatusText(errCode),
-		"BeegoVersion": utils.VERSION,
+		"Title":        fmt.Sprintf("%d%s%s", errCode, "-", http.StatusText(errCode)),
+		"EwgoVersion": utils.VERSION,
 		"Content":      template.HTML(errContent),
 	}
 	t.Execute(rw, data)

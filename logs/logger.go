@@ -8,6 +8,8 @@ import (
 	"runtime"
 	"path"
 	"strconv"
+	"log"
+	"strings"
 )
 
 const defaultAsyncMsgLen = 1e3
@@ -369,4 +371,34 @@ var ewLogger = NewLogger()
 // GetBeeLogger returns the default BeeLogger
 func GetEwLogger() *EwLogger {
 	return ewLogger
+}
+
+var ewLoggerMap = struct {
+	sync.RWMutex
+	logs map[string]*log.Logger
+}{
+	logs: map[string]*log.Logger{},
+}
+
+// GetLogger returns the default BeeLogger
+func GetLogger(prefixes ...string) *log.Logger {
+	prefix := append(prefixes, "")[0]
+	if prefix != "" {
+		prefix = fmt.Sprintf(`[%s] `, strings.ToUpper(prefix))
+	}
+	ewLoggerMap.RLock()
+	l, ok := ewLoggerMap.logs[prefix]
+	if ok {
+		ewLoggerMap.RUnlock()
+		return l
+	}
+	ewLoggerMap.RUnlock()
+	ewLoggerMap.Lock()
+	defer ewLoggerMap.Unlock()
+	l, ok = ewLoggerMap.logs[prefix]
+	if !ok {
+		l = log.New(ewLogger, prefix, 0)
+		ewLoggerMap.logs[prefix] = l
+	}
+	return l
 }

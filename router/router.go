@@ -33,7 +33,7 @@ const (
 )
 
 const (
-	routerTypeBeego = iota
+	routerTypeNormal = iota
 	routerTypeRESTFul
 	routerTypeHandler
 )
@@ -127,6 +127,7 @@ func NewControllerRegister() *ControllerRegister {
 		policies: make(map[string]*context.Tree),
 	}
 	cr.pool.New = func() interface{} {
+		logs.Debug("router.context.NewContext()")
 		return context.NewContext()
 	}
 	return cr
@@ -175,7 +176,7 @@ func (p *ControllerRegister) addWithMethodParams(pattern string, c controller.Co
 	route := &ControllerInfo{}
 	route.pattern = pattern
 	route.methods = methods
-	route.routerType = routerTypeBeego
+	route.routerType = routerTypeNormal
 	route.controllerType = t
 	route.methodParams = methodParams
 	if len(methods) == 0 {
@@ -394,7 +395,7 @@ func (p *ControllerRegister) AddAutoPrefix(prefix string, c controller.Controlle
 	for i := 0; i < rt.NumMethod(); i++ {
 		if !utils.InSlice(rt.Method(i).Name, exceptMethod) {
 			route := &ControllerInfo{}
-			route.routerType = routerTypeBeego
+			route.routerType = routerTypeNormal
 			route.methods = map[string]string{"*": rt.Method(i).Name}
 			route.controllerType = ct
 			pattern := path.Join(prefix, strings.ToLower(controllerName), strings.ToLower(rt.Method(i).Name), "*")
@@ -501,7 +502,7 @@ func (p *ControllerRegister) geturl(t *context.Tree, url, controllName, methodNa
 	}
 	for _, l := range t.Leaves {
 		if c, ok := l.RunObject.(*ControllerInfo); ok {
-			if c.routerType == routerTypeBeego &&
+			if c.routerType == routerTypeNormal &&
 				strings.HasSuffix(path.Join(c.controllerType.PkgPath(), c.controllerType.Name()), controllName) {
 				find := false
 				if _, ok := HTTPMETHOD[strings.ToUpper(methodName)]; ok {
@@ -622,6 +623,7 @@ func (p *ControllerRegister) execFilter(context *context.Context, urlPath string
 
 // Implement http.Handler interface.
 func (p *ControllerRegister) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
+	logs.Debug("router.ControllerRegister.ServeHTTP")
 	startTime := time.Now()
 	var (
 		runRouter    reflect.Type
@@ -631,15 +633,18 @@ func (p *ControllerRegister) ServeHTTP(rw http.ResponseWriter, r *http.Request) 
 		routerInfo   *ControllerInfo
 		isRunnable   bool
 	)
+
+	//ControllerRegister context pool
 	context := p.pool.Get().(*context.Context)
 	context.Reset(rw, r)
 
 	defer p.pool.Put(context)
 	//TODO config.BConfig.RecoverFunc
-	//if config.BConfig.RecoverFunc != nil {
-	//	defer config.BConfig.RecoverFunc(context)
-	//}
+	if config.BConfig.RecoverFunc != nil {
+		//defer config.BConfig.RecoverFunc(&context)
+	}
 
+	//EnableGzip
 	context.Output.EnableGzip = config.BConfig.EnableGzip
 
 	if config.BConfig.RunMode == utils.DEV {
@@ -648,9 +653,11 @@ func (p *ControllerRegister) ServeHTTP(rw http.ResponseWriter, r *http.Request) 
 
 	var urlPath = r.URL.Path
 
+	//Router Case Sensitive
 	if !config.BConfig.RouterCaseSensitive {
 		urlPath = strings.ToLower(urlPath)
 	}
+	logs.Debug("router.ControllerRegister.ServeHTTP urlPath=", urlPath, " Method=", r.Method)
 
 	// filter wrong http method
 	if _, ok := HTTPMETHOD[r.Method]; !ok {
@@ -659,10 +666,12 @@ func (p *ControllerRegister) ServeHTTP(rw http.ResponseWriter, r *http.Request) 
 	}
 
 	// filter for static file
+	logs.Debug("router.ControllerRegister.ServeHTTP BeforeStatic=", BeforeStatic, " len(p.filters[BeforeStatic])=", len(p.filters[BeforeStatic]))
 	if len(p.filters[BeforeStatic]) > 0 && p.execFilter(context, urlPath, BeforeStatic) {
 		goto Admin
 	}
 
+	//Static Router
 	serverStaticRouter(context)
 
 	if context.ResponseWriter.Started {
@@ -702,14 +711,19 @@ func (p *ControllerRegister) ServeHTTP(rw http.ResponseWriter, r *http.Request) 
 		runMethod = context.Input.RunMethod
 		runRouter = context.Input.RunController
 	} else {
+		logs.Debug("router.ControllerRegister.ServeHTTP FindRouter.context=", context)
 		routerInfo, findRouter = p.FindRouter(context)
 	}
 
 	//if no matches to url, throw a not found exception
 	if !findRouter {
+		logs.Debug("router.ControllerRegister.ServeHTTP FindRouter=false")
 		ewcontext.Exception(404, context)
+		logs.Debug("router.ControllerRegister.ServeHTTP ewcontext.Exception=404")
 		goto Admin
 	}
+
+	logs.Debug("router.ControllerRegister.ServeHTTP context.Input.Param=", context.Input.Param)
 	if splat := context.Input.Param(":splat"); splat != "" {
 		for k, v := range strings.Split(splat, "/") {
 			context.Input.SetParam(strconv.Itoa(k), v)
@@ -891,6 +905,7 @@ Admin:
 	}
 
 	// Call WriteHeader if status code has been set changed
+	logs.Debug("router.ControllerRegister.ServeHTTP Admin context.Output.Status=", context.Output.Status)
 	if context.Output.Status != 0 {
 		context.ResponseWriter.WriteHeader(context.Output.Status)
 	}
@@ -918,7 +933,9 @@ func (p *ControllerRegister) FindRouter(context *context.Context) (routerInfo *C
 	}
 	httpMethod := context.Input.Method()
 	if t, ok := p.routers[httpMethod]; ok {
+		logs.Debug("FindRouter t.Match urlPath=", urlPath, " context=", context)
 		RunObject := t.Match(urlPath, context)
+		logs.Debug("FindRouter t.Match RunObject=", RunObject)
 		if r, ok := RunObject.(*ControllerInfo); ok {
 			return r, true
 		}

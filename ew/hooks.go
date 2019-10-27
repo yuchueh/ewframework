@@ -48,7 +48,7 @@ func registerDefaultErrorHandler() error {
 func registerSession() error {
 	if config.BConfig.WebConfig.Session.SessionOn {
 		var err error
-		sessionConfig := config.AppConfig.String("session","sessionConfig")
+		sessionConfig := config.AppConfig.String("","sessionConfig")
 		conf := new(session.ManagerConfig)
 		if sessionConfig == "" {
 			conf.CookieName = config.BConfig.WebConfig.Session.SessionName

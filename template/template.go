@@ -155,7 +155,7 @@ func AddViewPath(viewPath string) error {
 		if _, exist := beeViewPathTemplates[viewPath]; exist {
 			return nil //Ignore if viewpath already exists
 		}
-		panic("Can not add new view paths after beego.Run()")
+		panic("Can not add new view paths after ew.Run()")
 	}
 	beeViewPathTemplates[viewPath] = make(map[string]*template.Template)
 	return BuildTemplate(viewPath)

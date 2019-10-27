@@ -131,5 +131,5 @@ func Trace(v ...interface{}) {
 }
 
 func generateFmtStr(n int) string {
-	return strings.Repeat("%v ", n)
+	return strings.Repeat("%v", n)
 }

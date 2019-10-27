@@ -7,6 +7,7 @@ import (
 	"errors"
 	"github.com/yuchueh/ewframework/utils"
 	"strings"
+	"github.com/yuchueh/ewframework/logs"
 )
 
 // Config is the main struct for BConfig
@@ -17,6 +18,7 @@ type EwConfig struct {
 	ServerName          string
 	RecoverPanic        bool
 	//RecoverFunc         func(*context.Context)
+	RecoverFunc         func(*interface{})
 	CopyRequestBody     bool
 	EnableGzip          bool
 	MaxMemory           int64
@@ -210,27 +212,22 @@ func newBConfig() *EwConfig {
 }
 
 func init() {
+	logs.Debug("ewconfig.init")
+
 	BConfig = newBConfig()
 	var err error
-	if AppPath, err = filepath.Abs(filepath.Dir(os.Args[0])); err != nil {
-		panic(err)
-	}
+
 	workPath, err := os.Getwd()
 	if err != nil {
 		panic(err)
 	}
 	appConfigPath = filepath.Join(workPath, "conf", "app.conf")
-	if !osext.FileExists(appConfigPath) {
-		appConfigPath = filepath.Join(AppPath, "conf", "app.conf")
-		if !osext.FileExists(appConfigPath) {
-			AppConfig = &ewAppConfig{ }
-			cf, _ := ReadDefault(appConfigPath)
-			AppConfig.innerConfig = cf
-			//file name
-			AppConfig.filename = appConfigPath
-			return
-		}
-	}
+	logs.Debug("ewconfig.init appConfigPath=", appConfigPath)
+
+	AppConfig = &ewAppConfig{ }
+	cf, _ := ReadDefault(appConfigPath)
+	AppConfig.innerConfig = cf
+	AppConfig.filename = appConfigPath
 }
 
 func (b *ewAppConfig) Set(section, key, value string) error {
